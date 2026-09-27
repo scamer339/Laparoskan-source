@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 import warnings
 import importlib.util
+import inspect
 
 import numpy as np
 from pydicom.dataset import FileDataset, FileMetaDataset
@@ -45,7 +46,10 @@ def write_ct_slice(path: Path, series_uid: str, z: float, instance: int,
     dataset.RescaleSlope = 1
     pixels = np.full((2, 3), instance, dtype="<i2")
     dataset.PixelData = pixels.tobytes()
-    dataset.save_as(path, write_like_original=False)
+    save_options = ({"enforce_file_format": True}
+                    if "enforce_file_format" in inspect.signature(dataset.save_as).parameters
+                    else {"write_like_original": False})
+    dataset.save_as(path, **save_options)
 
 
 class DicomSeriesTests(unittest.TestCase):
@@ -140,7 +144,8 @@ class DicomSeriesTests(unittest.TestCase):
             self.assertAlmostEqual(case.geometry.spacing_xyz[2], 0.8, places=5)
             self.assertAlmostEqual(case.geometry.spacing_xyz[0], 0.8, places=5)
             self.assertEqual(case.metadata["spacing_source"], "ImagePositionPatient projected distances")
-            self.assertEqual(case.volume.dtype, np.int16)
+            self.assertTrue(np.issubdtype(case.volume.dtype, np.signedinteger))
+            self.assertEqual(int(case.volume[0, 0, 0]), -1023)
 
 
 if __name__ == "__main__":
