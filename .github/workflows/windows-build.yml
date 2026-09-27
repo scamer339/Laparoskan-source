@@ -19,8 +19,20 @@ jobs:
       - name: Check frozen executable
         shell: pwsh
         run: ./dist/Laparoskan/Laparoskan.exe --smoke-test
+      - name: Capture synthetic planning screen
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          ./.venv-windows-build/Scripts/python.exe packaging/capture_ui.py dist/Laparoskan-demo-ui.png
       - uses: actions/upload-artifact@v4
         with:
           name: Laparoskan-Windows-portable
           path: dist/Laparoskan-Windows-portable.zip
           if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Laparoskan-demo-ui
+          path: dist/Laparoskan-demo-ui.png
+          if-no-files-found: ignore
